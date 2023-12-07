@@ -1,65 +1,39 @@
+import re
+from collections import defaultdict
+import numpy
+
 total_p1 = 0
 total_p2 = 0
 
-with open('./2023/data/input_3_test.txt') as f:
+GEARS = defaultdict(list)
+
+with open('./2023/data/input_3.txt') as f:
     lines = f.read().splitlines()
 
-current_number = []
-start_index = None
-
-rows = len(lines)
-columns = len(lines[0])
-
-GEAR = '*'
-
-def is_next_to_symbol(x: int, y: int, num: list, check: str) -> bool:
-    idx_y = y
+def is_next_to_symbol(x: int, y: int, num: str) -> bool:
     symbols = []
 
-    for idx_x in range(x, x + len(num)):
-        if idx_y > 0: symbols.append(lines[idx_y - 1][idx_x]) # UP
-        if idx_y < rows - 1: symbols.append(lines[idx_y + 1][idx_x]) # DOWN
-        
-        if idx_x > 0: symbols.append(lines[idx_y][idx_x - 1]) # LEFT
-        if idx_x < columns - 1: symbols.append(lines[idx_y][idx_x + 1]) # RIGHT
+    for idx_x in range(max(0, x - 1), min(len(lines[0]) - 1, x + len(num)) + 1):
+        for idx_j in range(max(0, y - 1), min(len(lines) - 1, y + 1) + 1):
+            value = lines[idx_j][idx_x]
+            symbols.append(value)
 
-        if idx_y > 0 and idx_x > 0: symbols.append(lines[idx_y - 1][idx_x - 1]) # UP LEFT
-        if idx_y > 0 and idx_x < columns - 1: symbols.append(lines[idx_y - 1][idx_x + 1]) # UP RIGHT
+            if value == '*':
+                GEARS[(idx_j, idx_x)].append(num)
 
-        if idx_y < rows - 1 and idx_x > 0: symbols.append(lines[idx_y + 1][idx_x - 1]) # DOWN LEFT
-        if idx_y < rows - 1 and idx_x < columns - 1: symbols.append(lines[idx_y + 1][idx_x + 1]) # DOWN RIGHT
-
-    if check == 'symbol':
-        symbols = [symbol for symbol in symbols if not symbol.isnumeric() and symbol != '.']
-    elif check == 'number':
-        pass
-
+    symbols = [symbol for symbol in symbols if not symbol.isnumeric() and symbol != '.']
+    
     return len(symbols) > 0
 
-for idx_y, line in enumerate(lines):    
-    for idx_x, char in enumerate(line):
-        if char.isnumeric():
-            if not current_number:
-                start_index = idx_x
-            current_number.append(char)
-        else:
-            if current_number:
-                next_to_symbol = is_next_to_symbol(start_index, idx_y, current_number, 'symbol')              
+for idx_y, line in enumerate(lines):
+    reg = re.compile('\d+')
 
-                if next_to_symbol:
-                    total_p1 += int(''.join(current_number))
-                
-                current_number = []
-                start_index = None
-
-    if current_number:
-        next_to_symbol = is_next_to_symbol(start_index, idx_y, current_number, 'symbol')              
-
-        if next_to_symbol:
-            total_p1 += int(''.join(current_number))
-        
-        current_number = []
-        start_index = None 
+    for m in reg.finditer(line):
+        if is_next_to_symbol(m.start(), idx_y, m.group()):
+            total_p1 += int(m.group())
     
+for k, v in GEARS.items():
+    total_p2 += numpy.prod([int(a) for a in v]) if len(v) == 2 else 0
+
 print(f'Total p1: {total_p1}')
 print(f'Total p1: {total_p2}')
